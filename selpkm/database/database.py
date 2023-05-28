@@ -3,6 +3,8 @@ import importlib
 import pathlib
 import sqlite3
 
+from .util import get_tables, get_timestamp
+
 
 class Database(object):
     def __init__(self, path: str or pathlib.Path, initialize: bool = True):
@@ -29,12 +31,11 @@ class Database(object):
             module = importlib.import_module(module_string)
             migrate = getattr(module, 'migrate')
             if migrate:
-                timestamp = datetime.datetime.now(datetime.timezone.utc)
-                timestamp_str = datetime.datetime.isoformat(timestamp)
+                timestamp = get_timestamp()
                 with self._connection as conn:
                     migrate(conn, current_migrations=finished_migrations)
                     conn.execute('INSERT INTO versions VALUES (?,?)',
-                                 (migration_id, timestamp_str))
+                                 (migration_id, timestamp))
 
     def _initialize(self):
         with self._connection as conn:
@@ -58,11 +59,7 @@ class Database(object):
                 return [a[0] for a in sorted(all_versions)]
 
     def get_tables(self) -> list[str]:
-        with self._connection as conn:
-            result = conn.execute(
-                'SELECT name FROM sqlite_master WHERE type="table"')
-        all_tables = result.fetchall()
-        return [a[0] for a in all_tables]
+        return get_tables(self._connection)
 
     def get_version(self) -> int | None:
         all_versions = self._migrations()
