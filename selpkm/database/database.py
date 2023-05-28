@@ -21,18 +21,20 @@ class Database(object):
         from .migrations import all_migrations
         package = '.'.join(__name__.split('.')[:-1])
         for migration in all_migrations:
+            migration_id = int(migration.split('_')[0])
+            finished_migrations = self._migrations()
+            if migration_id in finished_migrations:
+                continue
             module_string = f'{package}.migrations.{migration}'
             module = importlib.import_module(module_string)
             migrate = getattr(module, 'migrate')
-            finished_migrations = self._migrations()
             if migrate:
-                id = int(migration.split('_')[0])
                 timestamp = datetime.datetime.now(datetime.timezone.utc)
                 timestamp_str = datetime.datetime.isoformat(timestamp)
                 with self._connection as conn:
                     migrate(conn, current_migrations=finished_migrations)
                     conn.execute('INSERT INTO versions VALUES (?,?)',
-                                 (id, timestamp_str))
+                                 (migration_id, timestamp_str))
 
     def _initialize(self):
         with self._connection as conn:
