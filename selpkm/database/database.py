@@ -23,7 +23,7 @@ class Database(object):
         from .migrations import all_migrations
         package = '.'.join(__name__.split('.')[:-1])
         for migration in all_migrations:
-            migration_id = int(migration.split('_')[0])
+            migration_id = int(migration.split('_')[1])
             finished_migrations = self._migrations()
             if migration_id in finished_migrations:
                 continue

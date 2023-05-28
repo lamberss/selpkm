@@ -1,1 +1,1 @@
-all_migrations = ['01_initial_db']
+all_migrations = ['migration_01_initial_db']
