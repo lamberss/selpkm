@@ -1,7 +1,7 @@
-import datetime
 import importlib
 import pathlib
 import sqlite3
+from typing import List, Union
 
 from .util import get_tables, get_timestamp
 
@@ -44,7 +44,7 @@ class Database(object):
                          '    timestamp TEXT'
                          ')')
 
-    def _migrations(self) -> list[int]:
+    def _migrations(self) -> List[int]:
         all_versions = []
         try:
             with self._connection as conn:
@@ -58,10 +58,10 @@ class Database(object):
             else:
                 return [a[0] for a in sorted(all_versions)]
 
-    def get_tables(self) -> list[str]:
+    def get_tables(self) -> List[str]:
         return get_tables(self._connection)
 
-    def get_version(self) -> int | None:
+    def get_version(self) -> Union[int, None]:
         all_versions = self._migrations()
         if not all_versions:
             return None

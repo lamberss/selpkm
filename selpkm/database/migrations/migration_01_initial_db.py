@@ -1,7 +1,8 @@
 import sqlite3
+from typing import List, Union
 
 
-def migrate(connection: sqlite3.Connection, current_migrations: list[int] | None = None):
+def migrate(connection: sqlite3.Connection, current_migrations: Union[List[int], None] = None):
     connection.execute('CREATE TABLE IF NOT EXISTS containers ('
                        '    container_id INTEGER PRIMARY KEY,'
                        '    parent_id INTEGER NULL REFERENCES containers(container_id) ON DELETE CASCADE,'

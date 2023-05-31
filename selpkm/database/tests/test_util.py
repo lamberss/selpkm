@@ -32,5 +32,13 @@ class TestDatabaseUtil(unittest.TestCase):
         self.assertEqual(get_timestamp(dt), dts)
 
         dt = datetime.datetime.now(datetime.timezone.utc)
-        gt = datetime.datetime.fromisoformat(get_timestamp())
+        try:
+            gt = datetime.datetime.fromisoformat(get_timestep())
+        except AttributeError:
+            # NOTE: strptime is needed in python 3.6, and it cannot parse the
+            # the timezone directly because it is written as "+00:00" but strptime
+            # only understands "+0000"
+            ts = get_timestamp()
+            adjust_ts = ''.join(ts.rsplit(':',1))
+            gt = datetime.datetime.strptime(adjust_ts, '%Y-%m-%dT%H:%M:%S.%f%z')
         self.assertLessEqual(dt - gt, datetime.timedelta(seconds=1))
