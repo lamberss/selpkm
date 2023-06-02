@@ -32,6 +32,20 @@ class TestMigration01InitialDB(unittest.TestCase):
                           {'container_id': 2, 'name': 'thing2', 'parent_id': 1,
                            'created': 'now', 'modified': 'now'}])
 
+    def test_add_container_nonunique_name(self):
+        self.apply()
+        with self.assertRaises(sqlite3.IntegrityError), self.conn:
+            self.conn.execute('INSERT INTO containers VALUES(1,"thing1",NULL,"now","now")')
+            self.conn.execute('INSERT INTO containers VALUES(2,"thing1",NULL,"now","now")')
+
+    def test_add_container_nonunique_name_separate_containers(self):
+        self.apply()
+        with self.assertRaises(sqlite3.IntegrityError), self.conn:
+            self.conn.execute('INSERT INTO containers VALUES(1,"thing1",NULL,"now","now")')
+            self.conn.execute('INSERT INTO containers VALUES(2,"thing2",NULL,"now","now")')
+            self.conn.execute('INSERT INTO containers VALUES(3,"thing3",1,"now","now")')
+            self.conn.execute('INSERT INTO containers VALUES(4,"thing3",2,"now","now")')
+
     def test_add_container_null_name(self):
         self.apply()
         with self.assertRaises(sqlite3.IntegrityError), self.conn:
