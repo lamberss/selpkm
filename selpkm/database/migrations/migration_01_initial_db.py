@@ -12,6 +12,8 @@ def migrate(connection: sqlite3.Connection, current_migrations: Union[List[int],
                        ')')
     connection.execute('CREATE TABLE IF NOT EXISTS notes ('
                        '    note_id INTEGER PRIMARY KEY,'
+                       '    name TEXT NOT NULL,'
+                       '    description TEXT,'
                        '    container_id INTEGER NOT NULL,'
                        '    created TEXT NOT NULL,'
                        '    modified TEXT NOT NULL,'
