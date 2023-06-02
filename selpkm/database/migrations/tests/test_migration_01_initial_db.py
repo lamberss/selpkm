@@ -22,31 +22,36 @@ class TestMigration01InitialDB(unittest.TestCase):
         self.conn.row_factory = sqlite3.Row
         self.apply()
         with self.conn:
-            self.conn.execute('INSERT INTO containers VALUES(1,NULL,"now","now")')
-            self.conn.execute('INSERT INTO containers VALUES(2,1,"now","now")')
+            self.conn.execute('INSERT INTO containers VALUES(1,"thing1",NULL,"now","now")')
+            self.conn.execute('INSERT INTO containers VALUES(2,"thing2",1,"now","now")')
         with self.conn:
             result = self.conn.execute('SELECT * FROM containers')
         self.assertEqual([dict(r) for r in result.fetchall()],
-                         [{'container_id': 1, 'parent_id': None,
+                         [{'container_id': 1, 'name': 'thing1', 'parent_id': None,
                            'created': 'now', 'modified': 'now'},
-                          {'container_id': 2, 'parent_id': 1,
+                          {'container_id': 2, 'name': 'thing2', 'parent_id': 1,
                            'created': 'now', 'modified': 'now'}])
+
+    def test_add_container_null_name(self):
+        self.apply()
+        with self.assertRaises(sqlite3.IntegrityError), self.conn:
+            self.conn.execute('INSERT INTO containers VALUES(1,NULL,NULL,"now","now")')
 
     def test_add_container_null_created(self):
         self.apply()
         with self.assertRaises(sqlite3.IntegrityError), self.conn:
-            self.conn.execute('INSERT INTO containers VALUES(1,NULL,NULL,"now")')
+            self.conn.execute('INSERT INTO containers VALUES(1,"thing1",NULL,NULL,"now")')
 
     def test_add_container_null_modified(self):
         self.apply()
         with self.assertRaises(sqlite3.IntegrityError), self.conn:
-            self.conn.execute('INSERT INTO containers VALUES(1,NULL,"now",NULL)')
+            self.conn.execute('INSERT INTO containers VALUES(1,"thing1",NULL,"now",NULL)')
 
     def test_add_note(self):
         self.conn.row_factory = sqlite3.Row
         self.apply()
         with self.conn:
-            self.conn.execute('INSERT INTO containers VALUES(1,NULL,"now","now")')
+            self.conn.execute('INSERT INTO containers VALUES(1,"thing1",NULL,"now","now")')
             self.conn.execute('INSERT INTO notes VALUES(1,1,"now","now")')
         with self.conn:
             result = self.conn.execute('SELECT * FROM notes')
@@ -57,26 +62,26 @@ class TestMigration01InitialDB(unittest.TestCase):
     def test_add_note_bad_container(self):
         self.apply()
         with self.assertRaises(sqlite3.IntegrityError), self.conn:
-            self.conn.execute('INSERT INTO containers VALUES(1,NULL,"now","now")')
+            self.conn.execute('INSERT INTO containers VALUES(1,"thing1",NULL,"now","now")')
             self.conn.execute('INSERT INTO notes VALUES(1,2,"now","now")')
 
     def test_add_note_null_created(self):
         self.apply()
         with self.assertRaises(sqlite3.IntegrityError), self.conn:
-            self.conn.execute('INSERT INTO containers VALUES(1,NULL,"now","now")')
+            self.conn.execute('INSERT INTO containers VALUES(1,"thing1",NULL,"now","now")')
             self.conn.execute('INSERT INTO notes VALUES(1,1,NULL,"now")')
 
     def test_add_note_null_modified(self):
         self.apply()
         with self.assertRaises(sqlite3.IntegrityError), self.conn:
-            self.conn.execute('INSERT INTO containers VALUES(1,NULL,"now","now")')
+            self.conn.execute('INSERT INTO containers VALUES(1,"thing1",NULL,"now","now")')
             self.conn.execute('INSERT INTO notes VALUES(1,1,"now",NULL)')
 
     def test_delete_parent_container_cascades(self):
         self.apply()
         with self.conn:
-            self.conn.execute('INSERT INTO containers VALUES(1,NULL,"now","now")')
-            self.conn.execute('INSERT INTO containers VALUES(2,1,"now","now")')
+            self.conn.execute('INSERT INTO containers VALUES(1,"thing1",NULL,"now","now")')
+            self.conn.execute('INSERT INTO containers VALUES(2,"thing2",1,"now","now")')
             self.conn.execute('INSERT INTO notes VALUES(1,1,"now","now")')
             self.conn.execute('INSERT INTO notes VALUES(2,2,"now","now")')
         with self.conn:

@@ -5,6 +5,7 @@ from typing import List, Union
 def migrate(connection: sqlite3.Connection, current_migrations: Union[List[int], None] = None):
     connection.execute('CREATE TABLE IF NOT EXISTS containers ('
                        '    container_id INTEGER PRIMARY KEY,'
+                       '    name TEXT NOT NULL,'
                        '    parent_id INTEGER NULL REFERENCES containers(container_id) ON DELETE CASCADE,'
                        '    created TEXT NOT NULL,'
                        '    modified TEXT NOT NULL'
