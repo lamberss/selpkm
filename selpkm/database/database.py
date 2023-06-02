@@ -10,6 +10,7 @@ class Database(object):
     def __init__(self, path: str or pathlib.Path, initialize: bool = True):
         self._path = path
         self._connection = sqlite3.connect(str(self._path))
+        self._connection.execute('PRAGMA foreign_keys = 1')
 
         if initialize:
             if self.get_version() is None:
