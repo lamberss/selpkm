@@ -59,7 +59,7 @@ class Database(object):
                 return []
             else:
                 return [a['version_id'] for a in sorted(all_versions)]
-            
+
     def add_container(self, name, parent_id=None, parent_name=None) -> int:
         timestamp = get_timestamp()
         if parent_id is not None or parent_name is not None:
@@ -80,7 +80,7 @@ class Database(object):
         with self._connection as conn:
             result = conn.execute('SELECT * FROM containers WHERE name=?', (name,))
         return result.fetchone()['container_id']
-    
+
     def get_container(self, id=None, name=None) -> dict:
         sql = 'SELECT * FROM containers'
         sql_where = []
@@ -99,7 +99,7 @@ class Database(object):
         if row is None:
             raise ContainerDoesNotExist(id=id, name=name)
         return dict(row)
-    
+
     def get_containers(self) -> List[dict]:
         with self._connection as conn:
             result = conn.execute('SELECT * FROM containers')
@@ -107,7 +107,7 @@ class Database(object):
         if rows is None:
             return []
         return [dict(r) for r in rows]
-            
+
     def get_tables(self) -> List[str]:
         return get_tables(self._connection)
 

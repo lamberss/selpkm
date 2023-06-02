@@ -24,7 +24,7 @@ class TestDatabase(unittest.TestCase):
                           {'container_id': 2, 'name': 'thing 2', 'parent_id': None},
                           {'container_id': 3, 'name': 'thing 3', 'parent_id': 1},
                           {'container_id': 4, 'name': 'thing 4', 'parent_id': 1}])
-        
+
     def test_get_container(self):
         db = Database(':memory:')
         with db._connection as conn:
@@ -52,7 +52,7 @@ class TestDatabase(unittest.TestCase):
             db.get_container(name='not a container')
         with self.assertRaises(ContainerDoesNotExist):
             db.get_container(id=1, name='thing 2')
-        
+
     def test_get_containers(self):
         db = Database(':memory:')
         self.assertEqual(db.get_containers(), [])
@@ -123,7 +123,7 @@ class TestContainerNameExists(unittest.TestCase):
     def test_empty(self):
         with self.assertRaises(TypeError) as cm:
             raise ContainerNameExists()
-        
+
     def test_name(self):
         with self.assertRaises(ContainerNameExists) as cm:
             raise ContainerNameExists('bad')
