@@ -39,6 +39,36 @@ class Database(object):
                     conn.execute('INSERT INTO versions VALUES (?,?)',
                                  (migration_id, timestamp))
 
+    def _get_row(self, row_name, exception, id=None, name=None) -> dict:
+        sql = f'SELECT * FROM {row_name}s'
+        sql_where = []
+        params = []
+        if id is not None:
+            sql_where.append(f'{row_name}_id=?')
+            params.append(id)
+        if name is not None:
+            sql_where.append('name=?')
+            params.append(name)
+        if sql_where:
+            sql = f'{sql} WHERE {" AND ".join(sql_where)}'
+        with self._connection as conn:
+            result = conn.execute(sql, tuple(params))
+        rows = result.fetchall()
+        if not rows or len(rows) > 1:
+            raise exception(id=id, name=name)
+        return dict(rows[0])
+
+    def _get_rows(self, row_name, where: str = '') -> List[dict]:
+        sql = f'SELECT * FROM {row_name}'
+        if where:
+            sql += f' WHERE {where}'
+        with self._connection as conn:
+            result = conn.execute(sql)
+        rows = result.fetchall()
+        if rows is None:
+            return []
+        return [dict(r) for r in rows]
+
     def _initialize(self):
         with self._connection as conn:
             conn.execute('CREATE TABLE IF NOT EXISTS versions ('
@@ -68,45 +98,48 @@ class Database(object):
             parent = {'container_id': None}
         try:
             with self._connection as conn:
-                conn.execute('INSERT INTO containers(name,parent_id,created,modified) VALUES(?,?,?,?)',
-                             (name, parent['container_id'], timestamp, timestamp))
+                cursor = conn.cursor()
+                cursor.execute('INSERT INTO containers(name,parent_id,created,modified) VALUES(?,?,?,?)',
+                               (name, parent['container_id'], timestamp, timestamp))
         except sqlite3.IntegrityError as exception:
             if exception.args[0] == 'UNIQUE constraint failed: containers.name':
                 raise ContainerNameExists(name)
             elif exception.args[0] == 'FOREIGN KEY constraint failed':
-                raise ContainerDoesNotExist(parent_id)
+                raise ContainerDoesNotExist(parent['container_id'])
             else:
                 raise exception
-        with self._connection as conn:
-            result = conn.execute('SELECT * FROM containers WHERE name=?', (name,))
-        return result.fetchone()['container_id']
+        return cursor.lastrowid
+
+    def add_note(self, name, description=None, container_id=None, container_name=None) -> int:
+        timestamp = get_timestamp()
+        container = self.get_container(id=container_id, name=container_name)
+        try:
+            with self._connection as conn:
+                cursor = conn.cursor()
+                cursor.execute('INSERT INTO notes(name,description,container_id,created,modified) VALUES(?,?,?,?,?)',
+                               (name, description, container['container_id'], timestamp, timestamp))
+        except sqlite3.IntegrityError as exception:
+            if exception.args[0] == 'FOREIGN KEY constraint failed':
+                raise ContainerDoesNotExist(container['container_id'])
+            else:
+                raise exception
+        return cursor.lastrowid
 
     def get_container(self, id=None, name=None) -> dict:
-        sql = 'SELECT * FROM containers'
-        sql_where = []
-        params = []
-        if id is not None:
-            sql_where.append('container_id=?')
-            params.append(id)
-        if name is not None:
-            sql_where.append('name=?')
-            params.append(name)
-        if sql_where:
-            sql = f'{sql} WHERE {" AND ".join(sql_where)}'
-        with self._connection as conn:
-            result = conn.execute(sql, tuple(params))
-        row = result.fetchone()
-        if row is None:
-            raise ContainerDoesNotExist(id=id, name=name)
-        return dict(row)
+        return self._get_row('container', ContainerDoesNotExist, id=id, name=name)
 
     def get_containers(self) -> List[dict]:
-        with self._connection as conn:
-            result = conn.execute('SELECT * FROM containers')
-        rows = result.fetchall()
-        if rows is None:
-            return []
-        return [dict(r) for r in rows]
+        return self._get_rows('containers')
+
+    def get_note(self, id=None) -> dict:
+        return self._get_row('note', NoteDoesNotExist, id=id)
+
+    def get_notes(self, container_id=None, container_name=None) -> List[dict]:
+        where = ''
+        if container_id is not None or container_name is not None:
+            container = self.get_container(id=container_id, name=container_name)
+            where = f'container_id={container["container_id"]}'
+        return self._get_rows('notes', where=where)
 
     def get_tables(self) -> List[str]:
         return get_tables(self._connection)
@@ -122,7 +155,8 @@ class Database(object):
 class DatabaseException(Exception):
     pass
 
-class ContainerDoesNotExist(DatabaseException):
+class RowDoesNotExist(DatabaseException):
+    entity = 'Row'
     def __init__(self, id=None, name=None):
         self.id = id
         self.name = name
@@ -134,15 +168,21 @@ class ContainerDoesNotExist(DatabaseException):
         label_str = ''
         if labels:
             label_str = f'with ({",".join(labels)}) '
-        message = f'Container {label_str}does not exist.'
+        message = f'{self.entity} {label_str}does not exist.'
         self.message = message
         super().__init__(message, id, name)
 
     def __str__(self):
         return str(self.message)
 
+class ContainerDoesNotExist(RowDoesNotExist):
+    entity = 'Container'
+
 class ContainerNameExists(DatabaseException):
     def __init__(self, name):
         self.name = name
         message = f'Cannot add container named "{self.name}", it already exists.'
         super().__init__(message)
+
+class NoteDoesNotExist(RowDoesNotExist):
+    entity = 'Note'
