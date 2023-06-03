@@ -6,7 +6,7 @@
     "python.testing.unittestArgs": [
         "-v",
         "-s",
-        ".",
+        "./selpkm",
         "-p",
         "test_*.py"
     ],
